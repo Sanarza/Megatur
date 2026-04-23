@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEGATUR</title>
+
+<!-- EMAILJS -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470') no-repeat center center/cover;
+}
+
+/* LOGO 4D */
+header {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+h1 {
+    font-size: 55px;
+    color: #0a4fa3;
+    text-shadow:
+        0 2px 0 #083a78,
+        0 6px 12px rgba(0,0,0,0.4),
+        0 0 25px rgba(10,79,163,0.6);
+}
+
+h2 {
+    font-size: 18px;
+    background: rgba(255,255,255,0.9);
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+/* FORM */
+.container {
+    max-width: 750px;
+    margin: auto;
+    padding: 20px;
+}
+
+.form-box {
+    background: rgba(255,255,255,0.95);
+    padding: 25px;
+    border-radius: 12px;
+}
+
+/* INPUTS */
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+/* BOTON 4D */
+button {
+    background: linear-gradient(145deg, #0a4fa3, #083a78);
+    color: white;
+    padding: 15px;
+    border: none;
+    width: 100%;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 6px #062c5c, 0 10px 20px rgba(0,0,0,0.3);
+}
+
+button:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px #062c5c;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>MEGATUR</h1>
+    <h2>Traslados y Turismo Nacional e Internacional</h2>
+</header>
+
+<div class="container">
+<div class="form-box">
+
+<form id="form">
+
+<!-- PASO 1 -->
+<div id="paso1">
+
+<h3>Datos de Pasajeros</h3>
+
+<input type="text" id="nombre" placeholder="Nombre" required>
+
+<div class="row">
+<span style="padding:12px;background:#eee;border-radius:6px;">+549</span>
+<input type="tel" id="telefono" placeholder="Número sin 0 ni 15" required>
+</div>
+
+<label>Adultos</label>
+<input type="number" id="adultos" required>
+
+<label>¿Menores?</label>
+<select id="menores" onchange="toggleMenores(this)">
+<option>No</option>
+<option>Sí</option>
+</select>
+
+<div id="menoresBox" class="hidden">
+<input type="number" id="cantMenores" placeholder="Cantidad de menores">
+</div>
+
+<label>Equipaje</label>
+<select id="equipaje">
+<option>Mochila de mano</option>
+<option>Valija 20kg</option>
+<option>Sin equipaje</option>
+</select>
+
+<button type="button" onclick="siguiente()">Continuar</button>
+
+</div>
+
+<!-- PASO 2 -->
+<div id="paso2" class="hidden">
+
+<h3>Destino del viaje</h3>
+
+<label>Salida desde (Misiones)</label>
+<input type="text" id="origen" placeholder="Ej: Posadas, Oberá, Eldorado" required>
+
+<input type="text" id="direccionSalida" placeholder="Dirección exacta (opcional)">
+
+<label>Destino</label>
+
+<div class="row">
+<select id="pais" onchange="cargarProvincias()" required>
+<option value="">País</option>
+<option value="Argentina">Argentina</option>
+<option value="Brasil">Brasil</option>
+<option value="Uruguay">Uruguay</option>
+<option value="Paraguay">Paraguay</option>
+</select>
+
+<select id="provincia" onchange="cargarCiudades()" required></select>
+<select id="ciudad" required></select>
+</div>
+
+<label>Fecha ida</label>
+<input type="date" id="ida" required>
+
+<label>Hora salida</label>
+<input type="time" id="salida" required>
+
+<label>Fecha regreso</label>
+<input type="date" id="vuelta">
+
+<label>Hora llegada</label>
+<input type="time" id="llegada">
+
+<label>¿Incluye traslados internos? (Ej: traslado a hotel, excursiones dentro del destino)</label>
+<select id="internos">
+<option>No</option>
+<option>Sí</option>
+</select>
+
+<label>¿Incluye esperas? (Ej: el vehículo permanece en destino por horas/día completo)</label>
+<select id="esperas" onchange="toggleEspera(this)">
+<option>No</option>
+<option>Sí</option>
+</select>
+
+<div id="esperaHoras" class="hidden">
+<input type="number" id="horasEspera" placeholder="Horas de espera">
+</div>
+
+<label>
+<input type="checkbox" required>
+Los menores ocupan y abonan su lugar
+</label>
+
+<button type="submit">Solicitar Presupuesto</button>
+
+</div>
+
+</form>
+
+</div>
+</div>
+
+<script>
+
+// EMAILJS INIT
+(function(){
+    emailjs.init("TU_PUBLIC_KEY"); 
+})();
+
+/* PASOS */
+function siguiente(){
+    document.getElementById("paso1").classList.add("hidden");
+    document.getElementById("paso2").classList.remove("hidden");
+}
+
+/* TOGGLES */
+function toggleMenores(e){
+    document.getElementById("menoresBox").classList.toggle("hidden", e.value !== "Sí");
+}
+
+function toggleEspera(e){
+    document.getElementById("esperaHoras").classList.toggle("hidden", e.value !== "Sí");
+}
+
+/* PROVINCIAS ARGENTINA */
+async function cargarProvincias(){
+    let pais = document.getElementById("pais").value;
+    let provincia = document.getElementById("provincia");
+    provincia.innerHTML = "";
+
+    if(pais === "Argentina"){
+        let res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
+        let data = await res.json();
+
+        data.provincias.forEach(p=>{
+            let opt = document.createElement("option");
+            opt.value = p.nombre;
+            opt.text = p.nombre;
+            provincia.appendChild(opt);
+        });
+    }
+}
+
+/* CIUDADES */
+async function cargarCiudades(){
+    let provincia = document.getElementById("provincia").value;
+    let ciudad = document.getElementById("ciudad");
+    ciudad.innerHTML = "";
+
+    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia}&max=1000`);
+    let data = await res.json();
+
+    data.localidades.forEach(c=>{
+        let opt = document.createElement("option");
+        opt.text = c.nombre;
+        ciudad.appendChild(opt);
+    });
+}
+
+/* ENVIO EMAIL */
+document.getElementById("form").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    let datos = {
+        nombre: document.getElementById("nombre").value,
+        telefono: "+549" + document.getElementById("telefono").value,
+        adultos: document.getElementById("adultos").value,
+        menores: document.getElementById("cantMenores")?.value || "0",
+        origen: document.getElementById("origen").value,
+        destino: document.getElementById("ciudad").value,
+        fecha: document.getElementById("ida").value
+    };
+
+    emailjs.send("TU_SERVICE_ID","TU_TEMPLATE_ID", datos)
+    .then(()=>{
+        alert("Consulta enviada correctamente");
+    }, ()=>{
+        alert("Error al enviar");
+    });
+});
+
+</script>
+
+</body>
+</html>
