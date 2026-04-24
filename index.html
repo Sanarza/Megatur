@@ -104,6 +104,7 @@ button:active {
 <form id="form">
 
 <div id="paso1">
+
 <h3>Datos de Pasajeros</h3>
 
 <input type="text" id="nombre" placeholder="Nombre" required>
@@ -123,29 +124,60 @@ button:active {
 </select>
 
 <div id="menoresBox" class="hidden">
-<input type="number" id="cantMenores">
+<input type="number" id="cantMenores" placeholder="Cantidad de menores">
 </div>
 
 <label>Equipaje</label>
 <select id="equipaje">
-<option>Mochila</option>
-<option>Valija</option>
+<option>Mochila de mano</option>
+<option>Valija 20kg</option>
 <option>Sin equipaje</option>
 </select>
 
 <button type="button" onclick="siguiente()">Continuar</button>
+
 </div>
 
 <div id="paso2" class="hidden">
 
-<label>Salida</label>
-<input type="text" id="origen">
+<h3>Destino del viaje</h3>
+
+<label>Salida desde (Misiones)</label>
+<input type="text" id="origen" required>
+
+<input type="text" placeholder="Dirección exacta (opcional)">
 
 <label>Destino</label>
-<input type="text" id="ciudad">
 
-<label>Fecha</label>
-<input type="date" id="ida">
+<select id="pais" onchange="manejarPais()" required>
+<option value="">País</option>
+<option value="Argentina">Argentina</option>
+<option value="Brasil">Brasil</option>
+<option value="Uruguay">Uruguay</option>
+<option value="Paraguay">Paraguay</option>
+</select>
+
+<div id="argentinaBox" class="row hidden">
+<select id="provincia" onchange="cargarCiudades()"></select>
+<select id="ciudad"></select>
+</div>
+
+<div id="exteriorBox" class="hidden">
+<input type="text" id="provExt" placeholder="Provincia / Estado (obligatorio)">
+<input type="text" id="ciudadExt" placeholder="Ciudad / Municipio (obligatorio)">
+</div>
+
+<label>Fecha ida</label>
+<input type="date" id="ida" required>
+
+<label>Hora salida</label>
+<input type="time" id="salida" required>
+
+<label>Fecha regreso</label>
+<input type="date">
+
+<label>Hora llegada</label>
+<input type="time">
 
 <label>¿Incluye traslados internos?</label>
 <select id="internos" onchange="toggleInternos(this)">
@@ -167,7 +199,12 @@ button:active {
 <input type="number" id="horasEspera">
 </div>
 
-<button type="submit">Enviar</button>
+<label>
+<input type="checkbox" required>
+Los menores ocupan y abonan su lugar
+</label>
+
+<button type="submit">Solicitar Presupuesto</button>
 
 </div>
 
@@ -175,7 +212,7 @@ button:active {
 
 <div id="mensajeFinal">
 <button>
-GRACIAS POR TU CONSULTA. En menos de 24hs nos comunicaremos por WhatsApp.
+GRACIAS POR TU CONSULTA. En menos de 24hs. nos comunicaremos al whatsapp que proporcionaste, para enviarte el presupuesto de viaje.
 </button>
 </div>
 
@@ -189,31 +226,75 @@ GRACIAS POR TU CONSULTA. En menos de 24hs nos comunicaremos por WhatsApp.
 const firebaseConfig = {
   apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
   authDomain: "megatur-633bf.firebaseapp.com",
-  projectId: "megatur-633bf"
+  projectId: "megatur-633bf",
+  storageBucket: "megatur-633bf.firebasestorage.app",
+  messagingSenderId: "651078263132",
+  appId: "1:651078263132:web:e52380415a19413e812199"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function siguiente(){
-    paso1.classList.add("hidden");
-    paso2.classList.remove("hidden");
+function siguiente(){ paso1.classList.add("hidden"); paso2.classList.remove("hidden"); }
+function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
+function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
+function toggleInternos(e){ detalleInternos.classList.toggle("hidden", e.value !== "Sí"); }
+
+function manejarPais(){
+    argentinaBox.classList.add("hidden");
+    exteriorBox.classList.add("hidden");
+
+    if(pais.value === "Argentina"){
+        argentinaBox.classList.remove("hidden");
+        cargarProvincias();
+    } else {
+        exteriorBox.classList.remove("hidden");
+    }
 }
 
-function toggleMenores(e){
-    menoresBox.classList.toggle("hidden", e.value !== "Sí");
+async function cargarProvincias(){
+    let res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
+    let data = await res.json();
+
+    provincia.innerHTML = "";
+    data.provincias.forEach(p=>{
+        let opt = document.createElement("option");
+        opt.value = p.nombre;
+        opt.text = p.nombre;
+        provincia.appendChild(opt);
+    });
+
+    cargarCiudades();
 }
 
-function toggleInternos(e){
-    detalleInternos.classList.toggle("hidden", e.value !== "Sí");
-}
+async function cargarCiudades(){
+    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia.value}&max=1000`);
+    let data = await res.json();
 
-function toggleEspera(e){
-    esperaHoras.classList.toggle("hidden", e.value !== "Sí");
+    ciudad.innerHTML = "";
+    data.localidades.forEach(c=>{
+        let opt = document.createElement("option");
+        opt.text = c.nombre;
+        ciudad.appendChild(opt);
+    });
 }
 
 form.addEventListener("submit", function(e){
     e.preventDefault();
+
+    let paisVal = pais.value;
+
+    if(paisVal !== "Argentina"){
+        if(!provExt.value || !ciudadExt.value){
+            alert("Completá provincia y ciudad");
+            return;
+        }
+    }
+
+    if(internos.value === "Sí" && !textoInternos.value){
+        alert("Completá traslados internos");
+        return;
+    }
 
     let data = {
         nombre: nombre.value,
@@ -221,7 +302,9 @@ form.addEventListener("submit", function(e){
         adultos: adultos.value,
         menores: cantMenores.value || 0,
         origen: origen.value,
-        ciudad: ciudad.value,
+        pais: paisVal,
+        provincia: paisVal === "Argentina" ? provincia.value : provExt.value,
+        ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,
         fecha: ida.value,
 
         traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",
@@ -236,7 +319,7 @@ form.addEventListener("submit", function(e){
         form.style.display = "none";
         mensajeFinal.style.display = "block";
     })
-    .catch(()=> alert("Error"));
+    .catch(()=> alert("Error al guardar"));
 });
 </script>
 
