@@ -91,21 +91,6 @@ button:active {
     box-shadow: none;
     cursor: default;
 }
-
-/* MENSAJE ERROR */
-#mensajeError {
-    display: none;
-    text-align: center;
-    margin-top: 20px;
-}
-
-#mensajeError button {
-    background: white;
-    color: #0a4fa3;
-    border: 2px solid #0a4fa3;
-    box-shadow: none;
-    cursor: default;
-}
 </style>
 </head>
 
@@ -199,23 +184,17 @@ button:active {
 <label>Hora llegada</label>
 <input type="time">
 
-<label>
-¿Incluye traslados internos?
-(Ej: movimientos dentro del destino: hotel → excursiones → restaurantes → eventos)
-</label>
+<label>¿Incluye traslados internos? (Ej: traslado desde alojamiento a excursiones, restaurantes o distintos puntos del destino)</label>
 <select id="internos" onchange="toggleInternos(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
 <div id="detalleInternos" class="hidden">
-<textarea id="textoInternos" placeholder="Ej: 2 traslados diarios desde hotel a playa y regreso. Detallar recorridos y horarios"></textarea>
+<textarea id="textoInternos" placeholder="Ej: 2 traslados diarios desde hotel a playa y regreso. Indicar cantidad, desde dónde hacia dónde y horarios"></textarea>
 </div>
 
-<label>
-¿Incluye esperas?
-(Ej: el vehículo queda disponible durante varias horas o todo el día en destino)
-</label>
+<label>¿Incluye esperas? (Ej: el vehículo permanece disponible durante varias horas o todo el día en el destino)</label>
 <select id="esperas" onchange="toggleEspera(this)">
 <option>No</option>
 <option>Sí</option>
@@ -242,13 +221,10 @@ GRACIAS POR TU CONSULTA. En menos de 24hs. nos comunicaremos al whatsapp que pro
 </button>
 </div>
 
-<div id="mensajeError">
-<button id="textoError"></button>
-</div>
-
 </div>
 </div>
 
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
@@ -256,23 +232,61 @@ GRACIAS POR TU CONSULTA. En menos de 24hs. nos comunicaremos al whatsapp que pro
 const firebaseConfig = {
   apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
   authDomain: "megatur-633bf.firebaseapp.com",
-  projectId: "megatur-633bf"
+  projectId: "megatur-633bf",
+  storageBucket: "megatur-633bf.firebasestorage.app",
+  messagingSenderId: "651078263132",
+  appId: "1:651078263132:web:e52380415a19413e812199"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+/* FUNCIONES */
 function siguiente(){ paso1.classList.add("hidden"); paso2.classList.remove("hidden"); }
 function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
 function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
 function toggleInternos(e){ detalleInternos.classList.toggle("hidden", e.value !== "Sí"); }
 
-function mostrarError(msg){
-    textoError.innerText = msg;
-    mensajeError.style.display = "block";
-    window.scrollTo(0, document.body.scrollHeight);
+function manejarPais(){
+    argentinaBox.classList.add("hidden");
+    exteriorBox.classList.add("hidden");
+
+    if(pais.value === "Argentina"){
+        argentinaBox.classList.remove("hidden");
+        cargarProvincias();
+    } else {
+        exteriorBox.classList.remove("hidden");
+    }
 }
 
+async function cargarProvincias(){
+    let res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
+    let data = await res.json();
+
+    provincia.innerHTML = "";
+    data.provincias.forEach(p=>{
+        let opt = document.createElement("option");
+        opt.value = p.nombre;
+        opt.text = p.nombre;
+        provincia.appendChild(opt);
+    });
+
+    cargarCiudades();
+}
+
+async function cargarCiudades(){
+    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia.value}&max=1000`);
+    let data = await res.json();
+
+    ciudad.innerHTML = "";
+    data.localidades.forEach(c=>{
+        let opt = document.createElement("option");
+        opt.text = c.nombre;
+        ciudad.appendChild(opt);
+    });
+}
+
+/* ENVIO */
 form.addEventListener("submit", function(e){
     e.preventDefault();
 
@@ -280,22 +294,17 @@ form.addEventListener("submit", function(e){
 
     if(paisVal !== "Argentina"){
         if(!provExt.value || !ciudadExt.value){
-            mostrarError("Completá provincia y ciudad");
+            alert("Completá provincia y ciudad");
             return;
         }
     }
 
     if(internos.value === "Sí" && !textoInternos.value){
-        mostrarError("Completá los traslados internos indicando recorridos y horarios");
+        alert("Completá traslados internos");
         return;
     }
 
-    if(esperas.value === "Sí" && !horasEspera.value){
-        mostrarError("Indicá la cantidad de horas de espera");
-        return;
-    }
-
-    let data = {
+    let data = {     nombre: nombre.value,     telefono: telefono.value,     adultos: adultos.value,     menores: cantMenores.value || 0,     origen: origen.value,     pais: paisVal,     provincia: paisVal === "Argentina" ? provincia.value : provExt.value,     ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,     fecha: ida.value,      traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",     esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",      estado: "pendiente",     fecha_creacion: new Date() };     nombre: nombre.value,     telefono: telefono.value,     adultos: adultos.value,     menores: cantMenores.value || 0,     origen: origen.value,     pais: paisVal,     provincia: paisVal === "Argentina" ? provincia.value : provExt.value,     ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,     fecha: ida.value,      traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",     esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",      estado: "pendiente",     fecha_creacion: new Date() };     nombre: nombre.value,     telefono: telefono.value,     adultos: adultos.value,     menores: cantMenores.value || 0,     origen: origen.value,     pais: paisVal,     provincia: paisVal === "Argentina" ? provincia.value : provExt.value,     ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,     fecha: ida.value,      traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",     esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",      estado: "pendiente",     fecha_creacion: new Date() };     nombre: nombre.value,     telefono: telefono.value,     adultos: adultos.value,     menores: cantMenores.value || 0,     origen: origen.value,     pais: paisVal,     provincia: paisVal === "Argentina" ? provincia.value : provExt.value,     ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,     fecha: ida.value,      traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",     esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",      estado: "pendiente",     fecha_creacion: new Date() };
         nombre: nombre.value,
         telefono: telefono.value,
         adultos: adultos.value,
@@ -305,8 +314,6 @@ form.addEventListener("submit", function(e){
         provincia: paisVal === "Argentina" ? provincia.value : provExt.value,
         ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,
         fecha: ida.value,
-        traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",
-        esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",
         estado: "pendiente",
         fecha_creacion: new Date()
     };
@@ -316,9 +323,7 @@ form.addEventListener("submit", function(e){
         form.style.display = "none";
         mensajeFinal.style.display = "block";
     })
-    .catch(()=>{
-        mostrarError("Error al enviar la consulta");
-    });
+    .catch(()=> alert("Error al guardar"));
 });
 </script>
 
