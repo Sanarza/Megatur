@@ -2,18 +2,49 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MEGATUR</title>
+<title>Admin MEGATUR</title>
 
 <style>
 body {
     font-family: Arial;
+    background:#f4f4f4;
     padding:20px;
 }
 
-input,select,button {
-    width:100%;
+h1 {
+    color:#0a4fa3;
+}
+
+.card {
+    background:white;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pagado {
+    background:#d4edda;
+}
+
+button {
+    background:#0a4fa3;
+    color:white;
+    border:none;
     padding:10px;
-    margin:5px 0;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+button:hover {
+    background:#083a78;
+}
+
+input {
+    margin-top:5px;
+    padding:8px;
+    width:100%;
 }
 
 /* CALENDARIO */
@@ -21,7 +52,7 @@ input,select,button {
     display:flex;
     flex-wrap:wrap;
     gap:5px;
-    margin:10px 0;
+    margin-bottom:20px;
 }
 
 .dia {
@@ -32,17 +63,10 @@ input,select,button {
     justify-content:center;
     background:#eee;
     border-radius:5px;
-    cursor:pointer;
 }
 
 .ocupado {
     background:red;
-    color:white;
-    cursor:not-allowed;
-}
-
-.seleccionado {
-    background:#0a4fa3;
     color:white;
 }
 </style>
@@ -50,43 +74,12 @@ input,select,button {
 
 <body>
 
-<h2>Solicitud de Presupuesto</h2>
+<h1>Panel Admin - MEGATUR</h1>
 
-<form id="form">
-
-<input type="text" id="nombre" placeholder="Nombre" required>
-<input type="tel" id="telefono" placeholder="Teléfono" required>
-
-<input type="number" id="adultos" placeholder="Adultos" required>
-<input type="number" id="cantMenores" placeholder="Menores">
-
-<input type="text" id="origen" placeholder="Origen">
-<input type="text" id="ciudad" placeholder="Destino">
-
-<label>Seleccionar fecha:</label>
+<h3>Calendario (fechas ocupadas)</h3>
 <div id="calendario"></div>
 
-<input type="hidden" id="ida">
-
-<input type="time" id="salida" required>
-
-<select id="internos">
-<option>No</option>
-<option>Sí</option>
-</select>
-
-<textarea id="textoInternos" placeholder="Detalle internos"></textarea>
-
-<select id="esperas">
-<option>No</option>
-<option>Sí</option>
-</select>
-
-<input type="number" id="horasEspera" placeholder="Horas espera">
-
-<button type="submit">Enviar</button>
-
-</form>
+<div id="lista"></div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
@@ -101,105 +94,115 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let fechasOcupadas = [];
-
-/* CARGAR FECHAS */
-async function cargarFechas(){
-    let snap = await db.collection("fechas_ocupadas").get();
-
-    snap.forEach(doc=>{
-        fechasOcupadas.push(doc.data().fecha);
-    });
-
-    generarCalendario();
-}
-
-/* GENERAR CALENDARIO */
-function generarCalendario(){
-
-    let hoy = new Date();
-    let cont = "";
-
-    for(let i=1;i<=31;i++){
-
-        let dia = i.toString().padStart(2,'0');
-        let mes = (hoy.getMonth()+1).toString().padStart(2,'0');
-        let año = hoy.getFullYear();
-
-        let fecha = `${año}-${mes}-${dia}`;
-
-        let ocupado = fechasOcupadas.includes(fecha);
-
-        cont += `<div class="dia ${ocupado?'ocupado':''}" 
-        onclick="${ocupado?'':`seleccionarFecha('${fecha}',this)`}">
-        ${i}
-        </div>`;
+/* TELEFONO */
+function limpiarTelefono(tel){
+    tel = tel.replace(/\D/g,'');
+    if(!tel.startsWith("549")){
+        tel = "549" + tel;
     }
-
-    document.getElementById("calendario").innerHTML = cont;
+    return tel;
 }
 
-/* SELECCIONAR */
-function seleccionarFecha(fecha,el){
+/* ENVIAR PRESUPUESTO */
+function enviarPresupuesto(id,tel,nombre,fecha,ciudad,adultos,menores,internos,esperas){
 
-    document.querySelectorAll(".dia").forEach(d=>d.classList.remove("seleccionado"));
+    let precio = document.getElementById("precio_" + id).value;
+    let link = document.getElementById("link_" + id).value;
 
-    el.classList.add("seleccionado");
-
-    document.getElementById("ida").value = fecha;
-}
-
-/* VALIDACION FINAL */
-form.addEventListener("submit", async function(e){
-    e.preventDefault();
-
-    let fecha = ida.value;
-    let hora = salida.value;
-
-    let snap = await db.collection("fechas_ocupadas")
-    .where("fecha","==",fecha)
-    .get();
-
-    let reservas = [];
-    snap.forEach(doc=>reservas.push(doc.data()));
-
-    if(reservas.length >= 2){
-        alert("Ya hay 2 viajes ese día");
+    if(!precio){
+        alert("Ingresá el precio");
         return;
     }
 
-    for(let r of reservas){
-        let h1 = parseInt(hora.split(":")[0]);
-        let h2 = parseInt((r.hora||"00:00").split(":")[0]);
+    let telefono = limpiarTelefono(tel);
 
-        if(Math.abs(h1-h2)<3){
-            alert("Horario ocupado cercano");
-            return;
-        }
-    }
+    let mensaje = `Hola ${nombre}, Recibimos tu consulta para el viaje del ${fecha} a ${ciudad} para ${adultos} adultos y ${menores} menores.
 
-    let data = {
-        nombre: nombre.value,
-        telefono: telefono.value,
-        adultos: adultos.value,
-        menores: cantMenores.value || 0,
-        origen: origen.value,
-        ciudad: ciudad.value,
+${internos && internos !== "No incluye" ? "Incluye traslados internos: " + internos + "." : ""}
+${esperas && esperas !== "No incluye" ? " Incluye esperas: " + esperas + "." : ""}
+
+El precio final es de $${precio}.
+
+${link ? "Reservá por 20 dias, con el 60% acá: " + link : ""}
+
+Recordá que los valores pueden variar por inflación. Si tenés otras consultas dejalas a continuación y te responderemos a la brevedad. Muchas gracias.`;
+
+    let url = "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje);
+
+    window.open(url, "_blank");
+}
+
+/* MARCAR COMO PAGADO + GUARDAR RESERVA */
+function marcarPagado(id,fecha,hora,ciudad,adultos,menores){
+
+    db.collection("consultas").doc(id).update({
+        estado: "pagado"
+    });
+
+    db.collection("fechas_ocupadas").add({
         fecha: fecha,
-        hora_salida: hora,
-        traslados_internos: internos.value==="Sí"?textoInternos.value:"No incluye",
-        esperas: esperas.value==="Sí"?horasEspera.value+" horas":"No incluye",
-        estado:"pendiente",
-        fecha_creacion:new Date()
-    };
+        hora: hora || "00:00",
+        ciudad: ciudad,
+        personas: Number(adultos) + Number(menores),
+        fecha_registro: new Date()
+    });
+}
 
-    db.collection("consultas").add(data);
+/* CALENDARIO */
+function cargarCalendario(){
+    db.collection("fechas_ocupadas").get().then(snapshot=>{
+        let html = "";
 
-    alert("Consulta enviada");
+        snapshot.forEach(doc=>{
+            let d = doc.data();
+            html += `<div class="dia ocupado">${d.fecha.split("-")[2]}</div>`;
+        });
+
+        document.getElementById("calendario").innerHTML = html;
+    });
+}
+
+/* CARGAR CONSULTAS */
+db.collection("consultas").orderBy("fecha_creacion","desc")
+.onSnapshot(snapshot => {
+
+    let html = "";
+
+    snapshot.forEach(doc => {
+        let d = doc.data();
+
+        html += `
+        <div class="card ${d.estado === "pagado" ? "pagado" : ""}">
+            <b>${d.nombre}</b><br>
+            📞 ${d.telefono}<br>
+            🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
+            📅 ${d.fecha}<br>
+            ⏰ ${d.hora_salida || "Sin hora"}<br>
+            👥 ${d.adultos} adultos / ${d.menores} menores<br>
+
+            🔁 ${d.traslados_internos || "No incluye"}<br>
+            ⏳ ${d.esperas || "No incluye"}<br>
+
+            📌 Estado: ${d.estado}<br><br>
+
+            <input type="number" id="precio_${doc.id}" placeholder="Precio $">
+            <input type="text" id="link_${doc.id}" placeholder="Link de pago">
+
+            <button onclick="enviarPresupuesto('${doc.id}','${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}')">
+                ENVIAR PRESUPUESTO
+            </button>
+
+            <button onclick="marcarPagado('${doc.id}','${d.fecha}','${d.hora_salida}','${d.ciudad}','${d.adultos}','${d.menores}')">
+                MARCAR COMO PAGADO
+            </button>
+        </div>
+        `;
+    });
+
+    document.getElementById("lista").innerHTML = html;
+
+    cargarCalendario();
 });
-
-/* INIT */
-cargarFechas();
 </script>
 
 </body>
