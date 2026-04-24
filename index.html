@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MEGATUR</title>
 
-<!-- EMAILJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
 <style>
@@ -15,7 +14,6 @@ body {
     background: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470') no-repeat center center/cover;
 }
 
-/* LOGO 4D */
 header {
     text-align: center;
     padding: 40px 20px;
@@ -24,10 +22,7 @@ header {
 h1 {
     font-size: 55px;
     color: #0a4fa3;
-    text-shadow:
-        0 2px 0 #083a78,
-        0 6px 12px rgba(0,0,0,0.4),
-        0 0 25px rgba(10,79,163,0.6);
+    text-shadow: 0 2px 0 #083a78, 0 6px 12px rgba(0,0,0,0.4), 0 0 25px rgba(10,79,163,0.6);
 }
 
 h2 {
@@ -38,7 +33,6 @@ h2 {
     border-radius: 6px;
 }
 
-/* FORM */
 .container {
     max-width: 750px;
     margin: auto;
@@ -51,8 +45,7 @@ h2 {
     border-radius: 12px;
 }
 
-/* INPUTS */
-input, select {
+input, select, textarea {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
@@ -65,7 +58,6 @@ input, select {
     gap: 10px;
 }
 
-/* BOTON 4D */
 button {
     background: linear-gradient(145deg, #0a4fa3, #083a78);
     color: white;
@@ -143,14 +135,13 @@ button:active {
 <h3>Destino del viaje</h3>
 
 <label>Salida desde (Misiones)</label>
-<input type="text" id="origen" placeholder="Ej: Posadas, Oberá, Eldorado" required>
+<input type="text" id="origen" required>
 
-<input type="text" id="direccionSalida" placeholder="Dirección exacta (opcional)">
+<input type="text" placeholder="Dirección exacta (opcional)">
 
 <label>Destino</label>
 
-<div class="row">
-<select id="pais" onchange="cargarProvincias()" required>
+<select id="pais" onchange="manejarPais()" required>
 <option value="">País</option>
 <option value="Argentina">Argentina</option>
 <option value="Brasil">Brasil</option>
@@ -158,8 +149,16 @@ button:active {
 <option value="Paraguay">Paraguay</option>
 </select>
 
-<select id="provincia" onchange="cargarCiudades()" required></select>
-<select id="ciudad" required></select>
+<!-- ARGENTINA -->
+<div id="argentinaBox" class="row hidden">
+<select id="provincia" onchange="cargarCiudades()"></select>
+<select id="ciudad"></select>
+</div>
+
+<!-- EXTERIOR -->
+<div id="exteriorBox" class="hidden">
+<input type="text" id="provExt" placeholder="Provincia / Estado (obligatorio)">
+<input type="text" id="ciudadExt" placeholder="Ciudad / Municipio (obligatorio)">
 </div>
 
 <label>Fecha ida</label>
@@ -169,16 +168,20 @@ button:active {
 <input type="time" id="salida" required>
 
 <label>Fecha regreso</label>
-<input type="date" id="vuelta">
+<input type="date">
 
 <label>Hora llegada</label>
-<input type="time" id="llegada">
+<input type="time">
 
 <label>¿Incluye traslados internos? (Ej: traslado a hotel, excursiones dentro del destino)</label>
-<select id="internos">
+<select id="internos" onchange="toggleInternos(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
+
+<div id="detalleInternos" class="hidden">
+<textarea id="textoInternos" placeholder="Ej: 2 traslados diarios desde hotel a playa y regreso. Detallar horarios, destinos y cantidad"></textarea>
+</div>
 
 <label>¿Incluye esperas? (Ej: el vehículo permanece en destino por horas/día completo)</label>
 <select id="esperas" onchange="toggleEspera(this)">
@@ -206,54 +209,60 @@ Los menores ocupan y abonan su lugar
 
 <script>
 
-// EMAILJS INIT
-(function(){
-    emailjs.init("TU_PUBLIC_KEY"); 
-})();
+(function(){ emailjs.init("TU_PUBLIC_KEY"); })();
 
-/* PASOS */
 function siguiente(){
-    document.getElementById("paso1").classList.add("hidden");
-    document.getElementById("paso2").classList.remove("hidden");
+    paso1.classList.add("hidden");
+    paso2.classList.remove("hidden");
 }
 
-/* TOGGLES */
 function toggleMenores(e){
-    document.getElementById("menoresBox").classList.toggle("hidden", e.value !== "Sí");
+    menoresBox.classList.toggle("hidden", e.value !== "Sí");
 }
 
 function toggleEspera(e){
-    document.getElementById("esperaHoras").classList.toggle("hidden", e.value !== "Sí");
+    esperaHoras.classList.toggle("hidden", e.value !== "Sí");
 }
 
-/* PROVINCIAS ARGENTINA */
-async function cargarProvincias(){
+function toggleInternos(e){
+    detalleInternos.classList.toggle("hidden", e.value !== "Sí");
+}
+
+function manejarPais(){
     let pais = document.getElementById("pais").value;
-    let provincia = document.getElementById("provincia");
-    provincia.innerHTML = "";
+
+    argentinaBox.classList.add("hidden");
+    exteriorBox.classList.add("hidden");
 
     if(pais === "Argentina"){
-        let res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
-        let data = await res.json();
-
-        data.provincias.forEach(p=>{
-            let opt = document.createElement("option");
-            opt.value = p.nombre;
-            opt.text = p.nombre;
-            provincia.appendChild(opt);
-        });
+        argentinaBox.classList.remove("hidden");
+        cargarProvincias();
+    } else {
+        exteriorBox.classList.remove("hidden");
     }
 }
 
-/* CIUDADES */
-async function cargarCiudades(){
-    let provincia = document.getElementById("provincia").value;
-    let ciudad = document.getElementById("ciudad");
-    ciudad.innerHTML = "";
-
-    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia}&max=1000`);
+async function cargarProvincias(){
+    let res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
     let data = await res.json();
 
+    provincia.innerHTML = "";
+    data.provincias.forEach(p=>{
+        let opt = document.createElement("option");
+        opt.value = p.nombre;
+        opt.text = p.nombre;
+        provincia.appendChild(opt);
+    });
+
+    cargarCiudades();
+}
+
+async function cargarCiudades(){
+    let prov = provincia.value;
+    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${prov}&max=1000`);
+    let data = await res.json();
+
+    ciudad.innerHTML = "";
     data.localidades.forEach(c=>{
         let opt = document.createElement("option");
         opt.text = c.nombre;
@@ -261,26 +270,26 @@ async function cargarCiudades(){
     });
 }
 
-/* ENVIO EMAIL */
-document.getElementById("form").addEventListener("submit", function(e){
+form.addEventListener("submit", function(e){
     e.preventDefault();
 
-    let datos = {
-        nombre: document.getElementById("nombre").value,
-        telefono: "+549" + document.getElementById("telefono").value,
-        adultos: document.getElementById("adultos").value,
-        menores: document.getElementById("cantMenores")?.value || "0",
-        origen: document.getElementById("origen").value,
-        destino: document.getElementById("ciudad").value,
-        fecha: document.getElementById("ida").value
-    };
+    let pais = document.getElementById("pais").value;
 
-    emailjs.send("TU_SERVICE_ID","TU_TEMPLATE_ID", datos)
-    .then(()=>{
-        alert("Consulta enviada correctamente");
-    }, ()=>{
-        alert("Error al enviar");
-    });
+    if(pais !== "Argentina"){
+        if(!provExt.value || !ciudadExt.value){
+            alert("Debés completar provincia y ciudad de destino");
+            return;
+        }
+    }
+
+    if(internos.value === "Sí" && !textoInternos.value){
+        alert("Debés especificar los traslados internos");
+        return;
+    }
+
+    emailjs.send("TU_SERVICE_ID","TU_TEMPLATE_ID",{})
+    .then(()=> alert("Consulta enviada correctamente"))
+    .catch(()=> alert("Error al enviar. Configurá EmailJS"));
 });
 
 </script>
