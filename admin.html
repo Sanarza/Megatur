@@ -57,33 +57,8 @@ db.collection("consultas").orderBy("fecha_creacion","desc")
     snapshot.forEach(doc => {
         let d = doc.data();
 
-html += `
-<div class="card">
-    <b>${d.nombre}</b><br>
-    📞 ${d.telefono}<br>
-    🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
-    📅 ${d.fecha}<br>
-    👥 Adultos: ${d.adultos} | Menores: ${d.menores}<br>
-    🚐 Origen: ${d.origen}<br>
-    📌 Estado: ${d.estado}<br><br>
-
-    <button onclick="responder('${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}')">
-        RESPONDER POR WHATSAPP
-    </button>
-</div>
-`;
-        function responder(tel,nombre,fecha,ciudad){
-
-let mensaje = `Hola ${nombre}, tu consulta para el viaje del ${fecha} a ${ciudad} ya fue recibida.
-
-En breve te enviaremos el presupuesto detallado.
-
-Recordá que los valores pueden variar por inflación, por lo que te recomendamos reservar cuanto antes.`;
-
-let url = "https://wa.me/549"+tel+"?text="+encodeURIComponent(mensaje);
-
-window.open(url, "_blank");
-}
+        html += `
+        <div class="card">
             <b>${d.nombre}</b><br>
             📞 ${d.telefono}<br>
             🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
