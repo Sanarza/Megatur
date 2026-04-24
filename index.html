@@ -20,13 +20,11 @@ header {
 h1 {
     font-size: 55px;
     color: #0a4fa3;
-    text-shadow: 0 2px 0 #083a78, 0 6px 12px rgba(0,0,0,0.4), 0 0 25px rgba(10,79,163,0.6);
 }
 
 h2 {
     font-size: 18px;
     background: rgba(255,255,255,0.9);
-    display: inline-block;
     padding: 6px 12px;
     border-radius: 6px;
 }
@@ -47,46 +45,21 @@ input, select, textarea {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-}
-
-.row {
-    display: flex;
-    gap: 10px;
 }
 
 button {
-    background: linear-gradient(145deg, #0a4fa3, #083a78);
+    background: #0a4fa3;
     color: white;
     padding: 15px;
     border: none;
     width: 100%;
-    font-size: 18px;
-    border-radius: 8px;
-    cursor: pointer;
-    box-shadow: 0 6px #062c5c, 0 10px 20px rgba(0,0,0,0.3);
 }
 
-button:active {
-    transform: translateY(4px);
-    box-shadow: 0 2px #062c5c;
-}
-
-.hidden {
-    display: none;
-}
+.hidden { display:none; }
 
 #mensajeFinal {
-    display: none;
-    text-align: center;
-    margin-top: 20px;
-}
-
-#mensajeFinal button {
-    background: white;
-    color: #0a4fa3;
-    border: 2px solid #0a4fa3;
+    display:none;
+    text-align:center;
 }
 </style>
 </head>
@@ -94,8 +67,8 @@ button:active {
 <body>
 
 <header>
-    <h1>MEGATUR</h1>
-    <h2>Traslados y Turismo Nacional e Internacional</h2>
+<h1>MEGATUR</h1>
+<h2>Traslados y Turismo Nacional e Internacional</h2>
 </header>
 
 <div class="container">
@@ -103,116 +76,37 @@ button:active {
 
 <form id="form">
 
-<div id="paso1">
+<input id="nombre" placeholder="Nombre" required>
+<input id="telefono" placeholder="Teléfono" required>
+<input id="adultos" placeholder="Adultos" required>
+<input id="cantMenores" placeholder="Menores">
 
-<h3>Datos de Pasajeros</h3>
+<input id="origen" placeholder="Origen">
+<input id="ciudad" placeholder="Destino">
 
-<input type="text" id="nombre" placeholder="Nombre" required>
-
-<div class="row">
-<span style="padding:12px;background:#eee;border-radius:6px;">+549</span>
-<input type="tel" id="telefono" placeholder="Número sin 0 ni 15" required>
-</div>
-
-<label>Adultos</label>
-<input type="number" id="adultos" required>
-
-<label>¿Menores?</label>
-<select id="menores" onchange="toggleMenores(this)">
-<option>No</option>
-<option>Sí</option>
-</select>
-
-<div id="menoresBox" class="hidden">
-<input type="number" id="cantMenores" placeholder="Cantidad de menores">
-</div>
-
-<label>Equipaje</label>
-<select id="equipaje">
-<option>Mochila de mano</option>
-<option>Valija 20kg</option>
-<option>Sin equipaje</option>
-</select>
-
-<button type="button" onclick="siguiente()">Continuar</button>
-
-</div>
-
-<div id="paso2" class="hidden">
-
-<h3>Destino del viaje</h3>
-
-<label>Salida desde (Misiones)</label>
-<input type="text" id="origen" required>
-
-<input type="text" placeholder="Dirección exacta (opcional)">
-
-<label>Destino</label>
-
-<select id="pais" onchange="manejarPais()" required>
-<option value="">País</option>
-<option value="Argentina">Argentina</option>
-<option value="Brasil">Brasil</option>
-<option value="Uruguay">Uruguay</option>
-<option value="Paraguay">Paraguay</option>
-</select>
-
-<div id="argentinaBox" class="row hidden">
-<select id="provincia" onchange="cargarCiudades()"></select>
-<select id="ciudad"></select>
-</div>
-
-<div id="exteriorBox" class="hidden">
-<input type="text" id="provExt" placeholder="Provincia / Estado (obligatorio)">
-<input type="text" id="ciudadExt" placeholder="Ciudad / Municipio (obligatorio)">
-</div>
-
-<label>Fecha ida</label>
 <input type="date" id="ida" required>
 
-<label>Hora salida</label>
-<input type="time" id="salida" required>
-
-<label>Fecha regreso</label>
-<input type="date">
-
-<label>Hora llegada</label>
-<input type="time">
-
-<label>¿Incluye traslados internos?</label>
-<select id="internos" onchange="toggleInternos(this)">
+<select id="internos">
 <option>No</option>
 <option>Sí</option>
 </select>
 
-<div id="detalleInternos" class="hidden">
 <textarea id="textoInternos"></textarea>
-</div>
 
-<label>¿Incluye esperas?</label>
-<select id="esperas" onchange="toggleEspera(this)">
+<select id="esperas">
 <option>No</option>
 <option>Sí</option>
 </select>
 
-<div id="esperaHoras" class="hidden">
-<input type="number" id="horasEspera">
-</div>
-
-<label>
-<input type="checkbox" required>
-Los menores ocupan y abonan su lugar
-</label>
+<input id="horasEspera">
 
 <button type="submit">Solicitar Presupuesto</button>
-
-</div>
 
 </form>
 
 <div id="mensajeFinal">
 <button>
-GRACIAS POR TU CONSULTA. En menos de 24hs. nos comunicaremos al whatsapp que proporcionaste, para enviarte el presupuesto de viaje.
+GRACIAS POR TU CONSULTA
 </button>
 </div>
 
@@ -226,75 +120,14 @@ GRACIAS POR TU CONSULTA. En menos de 24hs. nos comunicaremos al whatsapp que pro
 const firebaseConfig = {
   apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
   authDomain: "megatur-633bf.firebaseapp.com",
-  projectId: "megatur-633bf",
-  storageBucket: "megatur-633bf.firebasestorage.app",
-  messagingSenderId: "651078263132",
-  appId: "1:651078263132:web:e52380415a19413e812199"
+  projectId: "megatur-633bf"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function siguiente(){ paso1.classList.add("hidden"); paso2.classList.remove("hidden"); }
-function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
-function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
-function toggleInternos(e){ detalleInternos.classList.toggle("hidden", e.value !== "Sí"); }
-
-function manejarPais(){
-    argentinaBox.classList.add("hidden");
-    exteriorBox.classList.add("hidden");
-
-    if(pais.value === "Argentina"){
-        argentinaBox.classList.remove("hidden");
-        cargarProvincias();
-    } else {
-        exteriorBox.classList.remove("hidden");
-    }
-}
-
-async function cargarProvincias(){
-    let res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
-    let data = await res.json();
-
-    provincia.innerHTML = "";
-    data.provincias.forEach(p=>{
-        let opt = document.createElement("option");
-        opt.value = p.nombre;
-        opt.text = p.nombre;
-        provincia.appendChild(opt);
-    });
-
-    cargarCiudades();
-}
-
-async function cargarCiudades(){
-    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia.value}&max=1000`);
-    let data = await res.json();
-
-    ciudad.innerHTML = "";
-    data.localidades.forEach(c=>{
-        let opt = document.createElement("option");
-        opt.text = c.nombre;
-        ciudad.appendChild(opt);
-    });
-}
-
 form.addEventListener("submit", function(e){
     e.preventDefault();
-
-    let paisVal = pais.value;
-
-    if(paisVal !== "Argentina"){
-        if(!provExt.value || !ciudadExt.value){
-            alert("Completá provincia y ciudad");
-            return;
-        }
-    }
-
-    if(internos.value === "Sí" && !textoInternos.value){
-        alert("Completá traslados internos");
-        return;
-    }
 
     let data = {
         nombre: nombre.value,
@@ -302,24 +135,46 @@ form.addEventListener("submit", function(e){
         adultos: adultos.value,
         menores: cantMenores.value || 0,
         origen: origen.value,
-        pais: paisVal,
-        provincia: paisVal === "Argentina" ? provincia.value : provExt.value,
-        ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,
+        ciudad: ciudad.value,
         fecha: ida.value,
-
-        traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",
-        esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",
-
-        estado: "pendiente",
-        fecha_creacion: new Date()
+        traslados_internos: internos.value==="Sí"?textoInternos.value:"No incluye",
+        esperas: esperas.value==="Sí"?horasEspera.value+" horas":"No incluye",
+        estado:"pendiente",
+        fecha_creacion:new Date()
     };
 
     db.collection("consultas").add(data)
     .then(()=>{
-        form.style.display = "none";
-        mensajeFinal.style.display = "block";
-    })
-    .catch(()=> alert("Error al guardar"));
+
+        /* EMAIL */
+        let cuerpo = `
+NUEVA CONSULTA MEGATUR
+
+Nombre: ${data.nombre}
+Teléfono: ${data.telefono}
+Origen: ${data.origen}
+Destino: ${data.ciudad}
+Fecha: ${data.fecha}
+
+Adultos: ${data.adultos}
+Menores: ${data.menores}
+
+Internos: ${data.traslados_internos}
+Esperas: ${data.esperas}
+
+------------------------------
+ENVIAR PRESUPUESTO:
+https://TU-ADMIN.github.io/admin.html
+`;
+
+        let mail = `mailto:sandracap08@hotmail.com?subject=NUEVA CONSULTA MEGATUR&body=${encodeURIComponent(cuerpo)}`;
+
+        window.location.href = mail;
+
+        form.style.display="none";
+        mensajeFinal.style.display="block";
+
+    });
 });
 </script>
 
