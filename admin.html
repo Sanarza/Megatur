@@ -23,6 +23,10 @@ h1 {
     box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
+.pagado {
+    background:#d4edda;
+}
+
 button {
     background:#0a4fa3;
     color:white;
@@ -36,6 +40,35 @@ button {
 button:hover {
     background:#083a78;
 }
+
+input {
+    margin-top:5px;
+    padding:8px;
+    width:100%;
+}
+
+/* CALENDARIO */
+#calendario {
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-bottom:20px;
+}
+
+.dia {
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#eee;
+    border-radius:5px;
+}
+
+.ocupado {
+    background:red;
+    color:white;
+}
 </style>
 </head>
 
@@ -43,9 +76,11 @@ button:hover {
 
 <h1>Panel Admin - MEGATUR</h1>
 
+<h3>Calendario (fechas ocupadas)</h3>
+<div id="calendario"></div>
+
 <div id="lista"></div>
 
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
@@ -53,16 +88,13 @@ button:hover {
 const firebaseConfig = {
   apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
   authDomain: "megatur-633bf.firebaseapp.com",
-  projectId: "megatur-633bf",
-  storageBucket: "megatur-633bf.firebasestorage.app",
-  messagingSenderId: "651078263132",
-  appId: "1:651078263132:web:e52380415a19413e812199"
+  projectId: "megatur-633bf"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* FORMATEAR TELEFONO */
+/* TELEFONO */
 function limpiarTelefono(tel){
     tel = tel.replace(/\D/g,'');
     if(!tel.startsWith("549")){
@@ -71,8 +103,16 @@ function limpiarTelefono(tel){
     return tel;
 }
 
-/* BOTON WHATSAPP MEJORADO */
-function responder(tel,nombre,fecha,ciudad,adultos,menores,internos,esperas){
+/* ENVIAR PRESUPUESTO */
+function enviarPresupuesto(id,tel,nombre,fecha,ciudad,adultos,menores,internos,esperas){
+
+    let precio = document.getElementById("precio_" + id).value;
+    let link = document.getElementById("link_" + id).value;
+
+    if(!precio){
+        alert("Ingresá el precio");
+        return;
+    }
 
     let telefono = limpiarTelefono(tel);
 
@@ -81,13 +121,45 @@ function responder(tel,nombre,fecha,ciudad,adultos,menores,internos,esperas){
 ${internos && internos !== "No incluye" ? "Incluye traslados internos: " + internos + "." : ""}
 ${esperas && esperas !== "No incluye" ? " Incluye esperas: " + esperas + "." : ""}
 
-El precio final, teniendo en cuenta estos detalles, es de $......
+El precio final es de $${precio}.
 
-Recordá que los valores pueden variar por inflación, por lo que te recomendamos reservar cuanto antes.`;
+${link ? "Reservá acá: " + link : ""}
+
+Recordá que los valores pueden variar por inflación.`;
 
     let url = "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje);
 
     window.open(url, "_blank");
+}
+
+/* MARCAR COMO PAGADO + GUARDAR RESERVA */
+function marcarPagado(id,fecha,hora,ciudad,adultos,menores){
+
+    db.collection("consultas").doc(id).update({
+        estado: "pagado"
+    });
+
+    db.collection("fechas_ocupadas").add({
+        fecha: fecha,
+        hora: hora || "00:00",
+        ciudad: ciudad,
+        personas: Number(adultos) + Number(menores),
+        fecha_registro: new Date()
+    });
+}
+
+/* CALENDARIO */
+function cargarCalendario(){
+    db.collection("fechas_ocupadas").get().then(snapshot=>{
+        let html = "";
+
+        snapshot.forEach(doc=>{
+            let d = doc.data();
+            html += `<div class="dia ocupado">${d.fecha.split("-")[2]}</div>`;
+        });
+
+        document.getElementById("calendario").innerHTML = html;
+    });
 }
 
 /* CARGAR CONSULTAS */
@@ -100,21 +172,28 @@ db.collection("consultas").orderBy("fecha_creacion","desc")
         let d = doc.data();
 
         html += `
-        <div class="card">
+        <div class="card ${d.estado === "pagado" ? "pagado" : ""}">
             <b>${d.nombre}</b><br>
             📞 ${d.telefono}<br>
             🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
             📅 ${d.fecha}<br>
-            👥 Adultos: ${d.adultos} | Menores: ${d.menores}<br>
-            🚐 Origen: ${d.origen}<br>
+            ⏰ ${d.hora_salida || "Sin hora"}<br>
+            👥 ${d.adultos} adultos / ${d.menores} menores<br>
 
-            🔁 Internos: ${d.traslados_internos ? d.traslados_internos : "No incluye"}<br>
-            ⏳ Esperas: ${d.esperas ? d.esperas : "No incluye"}<br>
+            🔁 ${d.traslados_internos || "No incluye"}<br>
+            ⏳ ${d.esperas || "No incluye"}<br>
 
-            📌 Estado: ${d.estado}<br>
+            📌 Estado: ${d.estado}<br><br>
 
-            <button onclick="responder('${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}')">
-                RESPONDER POR WHATSAPP
+            <input type="number" id="precio_${doc.id}" placeholder="Precio $">
+            <input type="text" id="link_${doc.id}" placeholder="Link de pago">
+
+            <button onclick="enviarPresupuesto('${doc.id}','${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}')">
+                ENVIAR PRESUPUESTO
+            </button>
+
+            <button onclick="marcarPagado('${doc.id}','${d.fecha}','${d.hora_salida}','${d.ciudad}','${d.adultos}','${d.menores}')">
+                MARCAR COMO PAGADO
             </button>
         </div>
         `;
@@ -122,6 +201,7 @@ db.collection("consultas").orderBy("fecha_creacion","desc")
 
     document.getElementById("lista").innerHTML = html;
 
+    cargarCalendario();
 });
 </script>
 
