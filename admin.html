@@ -71,14 +71,17 @@ function limpiarTelefono(tel){
     return tel;
 }
 
-/* BOTON WHATSAPP */
-function responder(tel,nombre,fecha,ciudad){
+/* BOTON WHATSAPP MEJORADO */
+function responder(tel,nombre,fecha,ciudad,adultos,menores,internos,esperas){
 
     let telefono = limpiarTelefono(tel);
 
-    let mensaje = `Hola ${nombre}, tu consulta para el viaje del ${fecha} a ${ciudad} ya fue recibida.
+    let mensaje = `Hola ${nombre}, Recibimos tu consulta para el viaje del ${fecha} a ${ciudad} para ${adultos} adultos y ${menores} menores.
 
-En breve te enviaremos el presupuesto detallado.
+${internos && internos !== "No incluye" ? "Incluye traslados internos: " + internos + "." : ""}
+${esperas && esperas !== "No incluye" ? " Incluye esperas: " + esperas + "." : ""}
+
+El precio final, teniendo en cuenta estos detalles, es de $......
 
 Recordá que los valores pueden variar por inflación, por lo que te recomendamos reservar cuanto antes.`;
 
@@ -104,9 +107,13 @@ db.collection("consultas").orderBy("fecha_creacion","desc")
             📅 ${d.fecha}<br>
             👥 Adultos: ${d.adultos} | Menores: ${d.menores}<br>
             🚐 Origen: ${d.origen}<br>
+
+            🔁 Internos: ${d.traslados_internos ? d.traslados_internos : "No incluye"}<br>
+            ⏳ Esperas: ${d.esperas ? d.esperas : "No incluye"}<br>
+
             📌 Estado: ${d.estado}<br>
 
-            <button onclick="responder('${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}')">
+            <button onclick="responder('${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}')">
                 RESPONDER POR WHATSAPP
             </button>
         </div>
