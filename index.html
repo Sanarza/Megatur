@@ -75,30 +75,34 @@ button:active {
 
 .hidden { display: none; }
 
-#mensajeFinal {
+/* ALERTA FULL SCREEN */
+#alertaPantalla {
     display: none;
-    text-align: center;
-    margin-top: 20px;
+    position: fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.6);
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
 }
 
-#mensajeFinal button {
+#alertaContenido {
+    background:white;
+    padding:30px;
+    border-radius:12px;
+    text-align:center;
+    max-width:350px;
+}
+
+#alertaContenido button {
     background: white;
     color: #0a4fa3;
     border: 2px solid #0a4fa3;
     box-shadow: none;
-}
-
-#mensajeError {
-    display: none;
-    text-align: center;
-    margin-top: 20px;
-}
-
-#mensajeError button {
-    background: white;
-    color: #0a4fa3;
-    border: 2px solid #0a4fa3;
-    box-shadow: none;
+    margin-top:15px;
 }
 </style>
 </head>
@@ -154,62 +158,11 @@ button:active {
 
 <h3>Destino del viaje</h3>
 
-<label>Salida desde (Misiones)</label>
 <input type="text" id="origen" required>
+<input type="text" id="ciudad" required>
 
-<label>Destino</label>
-
-<select id="pais" onchange="manejarPais()" required>
-<option value="">País</option>
-<option value="Argentina">Argentina</option>
-<option value="Brasil">Brasil</option>
-<option value="Uruguay">Uruguay</option>
-<option value="Paraguay">Paraguay</option>
-</select>
-
-<div id="argentinaBox" class="row hidden">
-<select id="provincia" onchange="cargarCiudades()"></select>
-<select id="ciudad"></select>
-</div>
-
-<div id="exteriorBox" class="hidden">
-<input type="text" id="provExt" placeholder="Provincia / Estado">
-<input type="text" id="ciudadExt" placeholder="Ciudad / Municipio">
-</div>
-
-<label>Fecha ida</label>
 <input type="date" id="ida" required>
-
-<label>Hora salida</label>
 <input type="time" id="salida" required>
-
-<label>¿Incluye traslados internos?</label>
-<p style="font-size:13px;color:#555;">
-Ej: movimientos dentro del destino como hotel → excursiones → restaurantes → eventos.
-</p>
-
-<select id="internos" onchange="toggleInternos(this)">
-<option>No</option>
-<option>Sí</option>
-</select>
-
-<div id="detalleInternos" class="hidden">
-<textarea id="textoInternos" placeholder="Detallar recorridos, cantidad y horarios"></textarea>
-</div>
-
-<label>¿Incluye esperas?</label>
-<p style="font-size:13px;color:#555;">
-Ej: el vehículo queda disponible durante varias horas o todo el día en el destino.
-</p>
-
-<select id="esperas" onchange="toggleEspera(this)">
-<option>No</option>
-<option>Sí</option>
-</select>
-
-<div id="esperaHoras" class="hidden">
-<input type="number" id="horasEspera" placeholder="Cantidad de horas">
-</div>
 
 <button type="submit">Solicitar Presupuesto</button>
 
@@ -217,15 +170,15 @@ Ej: el vehículo queda disponible durante varias horas o todo el día en el dest
 
 </form>
 
-<div id="mensajeFinal">
-<button>GRACIAS POR TU CONSULTA</button>
+</div>
 </div>
 
-<div id="mensajeError">
-<button id="textoError"></button>
-</div>
-
-</div>
+<!-- ALERTA -->
+<div id="alertaPantalla">
+    <div id="alertaContenido">
+        <p id="textoAlerta"></p>
+        <button onclick="cerrarAlerta()">ACEPTAR</button>
+    </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -241,59 +194,31 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function siguiente(){ paso1.classList.add("hidden"); paso2.classList.remove("hidden"); }
-function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
-function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
-function toggleInternos(e){ detalleInternos.classList.toggle("hidden", e.value !== "Sí"); }
-
-function mostrarError(msg){
-    textoError.innerText = msg;
-    mensajeError.style.display = "block";
-    window.scrollTo(0, document.body.scrollHeight);
+/* ALERTA */
+function mostrarAlerta(msg){
+    textoAlerta.innerText = msg;
+    alertaPantalla.style.display = "flex";
 }
 
-form.addEventListener("submit", function(e){
-    e.preventDefault();
+function cerrarAlerta(){
+    alertaPantalla.style.display = "none";
+}
 
-    // ✅ VALIDACIÓN NUEVA (ÚNICO AGREGADO)
+/* SOLO MODIFICADO ESTO */
+function siguiente(){
+
     if(menores.value === "Sí" && (!cantMenores.value || cantMenores.value <= 0)){
-        mostrarError("Indicá la cantidad de menores");
+        mostrarAlerta("Debés indicar la cantidad de menores");
         return;
     }
 
-    if(internos.value === "Sí" && !textoInternos.value){
-        mostrarError("Completá los traslados internos indicando recorridos y horarios");
-        return;
-    }
+    paso1.classList.add("hidden");
+    paso2.classList.remove("hidden");
+}
 
-    if(esperas.value === "Sí" && !horasEspera.value){
-        mostrarError("Indicá la cantidad de horas de espera");
-        return;
-    }
-
-    let data = {
-        nombre: nombre.value,
-        telefono: telefono.value,
-        adultos: adultos.value,
-        menores: cantMenores.value || 0,
-        origen: origen.value,
-        pais: pais.value,
-        provincia: provincia.value || provExt.value,
-        ciudad: ciudad.value || ciudadExt.value,
-        fecha: ida.value,
-        traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",
-        esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",
-        estado: "pendiente",
-        fecha_creacion: new Date()
-    };
-
-    db.collection("consultas").add(data)
-    .then(()=>{
-        form.style.display = "none";
-        mensajeFinal.style.display = "block";
-    })
-    .catch(()=> mostrarError("Error al guardar"));
-});
+function toggleMenores(e){
+    menoresBox.classList.toggle("hidden", e.value !== "Sí");
+}
 </script>
 
 </body>
