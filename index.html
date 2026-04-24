@@ -263,60 +263,53 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ====== NUEVO: PROVINCIAS + CIUDADES ====== */
+/* ===== PROVINCIAS Y CIUDADES REALES (API ARGENTINA) ===== */
 
-const provinciasArgentina = {
- "Buenos Aires":["La Plata","Mar del Plata","Bahía Blanca"],
- "CABA":["Ciudad Autónoma de Buenos Aires"],
- "Catamarca":["San Fernando del Valle"],
- "Chaco":["Resistencia","Los Frentones"],
- "Chubut":["Trelew","Comodoro"],
- "Córdoba":["Córdoba Capital","Villa Carlos Paz"],
- "Corrientes":["Corrientes Capital"],
- "Entre Ríos":["Paraná"],
- "Formosa":["Formosa Capital"],
- "Jujuy":["San Salvador"],
- "La Pampa":["Santa Rosa"],
- "La Rioja":["La Rioja Capital"],
- "Mendoza":["Mendoza Capital"],
- "Misiones":["Posadas","Eldorado","Iguazú"],
- "Neuquén":["Neuquén Capital"],
- "Río Negro":["Bariloche"],
- "Salta":["Salta Capital"],
- "San Juan":["San Juan Capital"],
- "San Luis":["San Luis Capital"],
- "Santa Cruz":["El Calafate"],
- "Santa Fe":["Rosario"],
- "Santiago del Estero":["Santiago Capital"],
- "Tierra del Fuego":["Ushuaia"],
- "Tucumán":["San Miguel"]
-};
+async function manejarPais(){
 
-function manejarPais(){
-    if(pais.value==="Argentina"){
+    if(pais.value === "Argentina"){
+
         argentinaBox.classList.remove("hidden");
         exteriorBox.classList.add("hidden");
 
-        provincia.innerHTML='<option value="">Provincia</option>';
-        for(let p in provinciasArgentina){
-            provincia.innerHTML+=`<option value="${p}">${p}</option>`;
-        }
+        provincia.innerHTML = '<option>Cargando...</option>';
 
-    }else{
+        const res = await fetch("https://apis.datos.gob.ar/georef/api/provincias");
+        const data = await res.json();
+
+        provincia.innerHTML = '<option value="">Provincia</option>';
+
+        data.provincias
+            .sort((a,b)=>a.nombre.localeCompare(b.nombre))
+            .forEach(p => {
+                provincia.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
+
+    } else {
+
         argentinaBox.classList.add("hidden");
         exteriorBox.classList.remove("hidden");
+
     }
 }
 
-function cargarCiudades(){
-    ciudad.innerHTML='<option value="">Ciudad</option>';
-    let lista=provinciasArgentina[provincia.value]||[];
-    lista.forEach(c=>{
-        ciudad.innerHTML+=`<option value="${c}">${c}</option>`;
-    });
+async function cargarCiudades(){
+
+    ciudad.innerHTML = '<option>Cargando ciudades...</option>';
+
+    const res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia.value}&max=1000`);
+    const data = await res.json();
+
+    ciudad.innerHTML = '<option value="">Ciudad / Localidad</option>';
+
+    data.localidades
+        .sort((a,b)=>a.nombre.localeCompare(b.nombre))
+        .forEach(c => {
+            ciudad.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+        });
 }
 
-/* ====== RESTO IGUAL ====== */
+/* RESTO IGUAL */
 
 function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
 function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
