@@ -68,34 +68,15 @@ button {
     box-shadow: 0 6px #062c5c, 0 10px 20px rgba(0,0,0,0.3);
 }
 
-button:active {
-    transform: translateY(4px);
-    box-shadow: 0 2px #062c5c;
-}
-
 .hidden { display: none; }
 
-/* MENSAJE FINAL */
-#mensajeFinal {
+#mensajeFinal, #mensajeError {
     display: none;
     text-align: center;
     margin-top: 20px;
 }
 
-#mensajeFinal button {
-    background: white;
-    color: #0a4fa3;
-    border: 2px solid #0a4fa3;
-    box-shadow: none;
-}
-
-/* MENSAJE ERROR */
-#mensajeError {
-    display: none;
-    text-align: center;
-    margin-top: 20px;
-}
-
+#mensajeFinal button,
 #mensajeError button {
     background: white;
     color: #0a4fa3;
@@ -117,7 +98,6 @@ button:active {
 
 <form id="form">
 
-<!-- PASO 1 -->
 <div id="paso1">
 
 <h3>Datos de Pasajeros</h3>
@@ -142,78 +122,32 @@ button:active {
 <input type="number" id="cantMenores" placeholder="Cantidad de menores">
 </div>
 
-<label>Equipaje</label>
-<select id="equipaje">
-<option>Mochila de mano</option>
-<option>Valija 20kg</option>
-<option>Sin equipaje</option>
-</select>
-
 <button type="button" onclick="siguiente()">Continuar</button>
-
 </div>
 
-<!-- PASO 2 -->
 <div id="paso2" class="hidden">
 
-<h3>Destino del viaje</h3>
+<input type="text" id="origen" placeholder="Origen" required>
+<input type="text" id="ciudad" placeholder="Destino" required>
 
-<label>Salida desde (Misiones)</label>
-<input type="text" id="origen" required>
-
-<label>Destino</label>
-
-<select id="pais" onchange="manejarPais()" required>
-<option value="">País</option>
-<option value="Argentina">Argentina</option>
-<option value="Brasil">Brasil</option>
-<option value="Uruguay">Uruguay</option>
-<option value="Paraguay">Paraguay</option>
-</select>
-
-<div id="argentinaBox" class="row hidden">
-<select id="provincia" onchange="cargarCiudades()"></select>
-<select id="ciudad"></select>
-</div>
-
-<div id="exteriorBox" class="hidden">
-<input type="text" id="provExt" placeholder="Provincia / Estado">
-<input type="text" id="ciudadExt" placeholder="Ciudad / Municipio">
-</div>
-
-<label>Fecha ida</label>
 <input type="date" id="ida" required>
-
-<label>Hora salida</label>
 <input type="time" id="salida" required>
 
-<label>¿Incluye traslados internos?</label>
-<p style="font-size:13px;color:#555;">
-Ej: movimientos dentro del destino como hotel → excursiones → restaurantes → eventos.
-</p>
-
+<label>Traslados internos</label>
 <select id="internos" onchange="toggleInternos(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
-<div id="detalleInternos" class="hidden">
-<textarea id="textoInternos" placeholder="Detallar recorridos, cantidad y horarios"></textarea>
-</div>
+<textarea id="textoInternos"></textarea>
 
-<label>¿Incluye esperas?</label>
-<p style="font-size:13px;color:#555;">
-Ej: el vehículo queda disponible durante varias horas o todo el día en el destino.
-</p>
-
+<label>Esperas</label>
 <select id="esperas" onchange="toggleEspera(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
-<div id="esperaHoras" class="hidden">
-<input type="number" id="horasEspera" placeholder="Cantidad de horas">
-</div>
+<input id="horasEspera">
 
 <button type="submit">Solicitar Presupuesto</button>
 
@@ -245,10 +179,22 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function siguiente(){ paso1.classList.add("hidden"); paso2.classList.remove("hidden"); }
-function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
-function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
-function toggleInternos(e){ detalleInternos.classList.toggle("hidden", e.value !== "Sí"); }
+function siguiente(){
+    paso1.classList.add("hidden");
+    paso2.classList.remove("hidden");
+}
+
+function toggleMenores(e){
+    menoresBox.classList.toggle("hidden", e.value !== "Sí");
+}
+
+function toggleInternos(e){
+    textoInternos.style.display = e.value === "Sí" ? "block" : "none";
+}
+
+function toggleEspera(e){
+    horasEspera.style.display = e.value === "Sí" ? "block" : "none";
+}
 
 function mostrarError(msg){
     textoError.innerText = msg;
@@ -259,13 +205,19 @@ function mostrarError(msg){
 form.addEventListener("submit", function(e){
     e.preventDefault();
 
+    // ✅ VALIDACIÓN NUEVA
+    if(menores.value === "Sí" && (!cantMenores.value || cantMenores.value <= 0)){
+        mostrarError("Indicá la cantidad de menores");
+        return;
+    }
+
     if(internos.value === "Sí" && !textoInternos.value){
-        mostrarError("Completá los traslados internos indicando recorridos y horarios");
+        mostrarError("Completá los traslados internos");
         return;
     }
 
     if(esperas.value === "Sí" && !horasEspera.value){
-        mostrarError("Indicá la cantidad de horas de espera");
+        mostrarError("Indicá las horas de espera");
         return;
     }
 
@@ -275,9 +227,7 @@ form.addEventListener("submit", function(e){
         adultos: adultos.value,
         menores: cantMenores.value || 0,
         origen: origen.value,
-        pais: pais.value,
-        provincia: provincia.value || provExt.value,
-        ciudad: ciudad.value || ciudadExt.value,
+        ciudad: ciudad.value,
         fecha: ida.value,
         traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",
         esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",
@@ -290,7 +240,9 @@ form.addEventListener("submit", function(e){
         form.style.display = "none";
         mensajeFinal.style.display = "block";
     })
-    .catch(()=> mostrarError("Error al guardar"));
+    .catch(()=>{
+        mostrarError("Error al enviar");
+    });
 });
 </script>
 
