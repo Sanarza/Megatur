@@ -307,12 +307,12 @@ form.addEventListener("submit", function(e){
     e.preventDefault();
 
     if(internos.value === "Sí" && !textoInternos.value){
-        mostrarError("Completá los traslados internos indicando recorridos y horarios");
+            mostrarAlerta("Completá los traslados internos indicando recorridos y horarios");
         return;
     }
 
     if(esperas.value === "Sí" && !horasEspera.value){
-        mostrarError("Indicá la cantidad de horas de espera");
+         mostrarAlerta("Indicá la cantidad de horas de espera");
         return;
     }
 
