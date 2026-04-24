@@ -22,6 +22,20 @@ h1 {
     border-radius:8px;
     box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
+
+button {
+    background:#0a4fa3;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+button:hover {
+    background:#083a78;
+}
 </style>
 </head>
 
@@ -48,6 +62,31 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+/* FORMATEAR TELEFONO */
+function limpiarTelefono(tel){
+    tel = tel.replace(/\D/g,'');
+    if(!tel.startsWith("549")){
+        tel = "549" + tel;
+    }
+    return tel;
+}
+
+/* BOTON WHATSAPP */
+function responder(tel,nombre,fecha,ciudad){
+
+    let telefono = limpiarTelefono(tel);
+
+    let mensaje = `Hola ${nombre}, tu consulta para el viaje del ${fecha} a ${ciudad} ya fue recibida.
+
+En breve te enviaremos el presupuesto detallado.
+
+Recordá que los valores pueden variar por inflación, por lo que te recomendamos reservar cuanto antes.`;
+
+    let url = "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje);
+
+    window.open(url, "_blank");
+}
+
 /* CARGAR CONSULTAS */
 db.collection("consultas").orderBy("fecha_creacion","desc")
 .onSnapshot(snapshot => {
@@ -65,7 +104,11 @@ db.collection("consultas").orderBy("fecha_creacion","desc")
             📅 ${d.fecha}<br>
             👥 Adultos: ${d.adultos} | Menores: ${d.menores}<br>
             🚐 Origen: ${d.origen}<br>
-            📌 Estado: ${d.estado}
+            📌 Estado: ${d.estado}<br>
+
+            <button onclick="responder('${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}')">
+                RESPONDER POR WHATSAPP
+            </button>
         </div>
         `;
     });
