@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MEGATUR</title>
 
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-
 <style>
 body {
     margin: 0;
@@ -149,13 +147,11 @@ button:active {
 <option value="Paraguay">Paraguay</option>
 </select>
 
-<!-- ARGENTINA -->
 <div id="argentinaBox" class="row hidden">
 <select id="provincia" onchange="cargarCiudades()"></select>
 <select id="ciudad"></select>
 </div>
 
-<!-- EXTERIOR -->
 <div id="exteriorBox" class="hidden">
 <input type="text" id="provExt" placeholder="Provincia / Estado (obligatorio)">
 <input type="text" id="ciudadExt" placeholder="Ciudad / Municipio (obligatorio)">
@@ -173,24 +169,24 @@ button:active {
 <label>Hora llegada</label>
 <input type="time">
 
-<label>¿Incluye traslados internos? (Ej: traslado a hotel, excursiones dentro del destino)</label>
+<label>¿Incluye traslados internos?</label>
 <select id="internos" onchange="toggleInternos(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
 <div id="detalleInternos" class="hidden">
-<textarea id="textoInternos" placeholder="Ej: 2 traslados diarios desde hotel a playa y regreso. Detallar horarios, destinos y cantidad"></textarea>
+<textarea id="textoInternos"></textarea>
 </div>
 
-<label>¿Incluye esperas? (Ej: el vehículo permanece en destino por horas/día completo)</label>
+<label>¿Incluye esperas?</label>
 <select id="esperas" onchange="toggleEspera(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
 <div id="esperaHoras" class="hidden">
-<input type="number" id="horasEspera" placeholder="Horas de espera">
+<input type="number" id="horasEspera">
 </div>
 
 <label>
@@ -207,34 +203,34 @@ Los menores ocupan y abonan su lugar
 </div>
 </div>
 
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
+  authDomain: "megatur-633bf.firebaseapp.com",
+  projectId: "megatur-633bf",
+  storageBucket: "megatur-633bf.firebasestorage.app",
+  messagingSenderId: "651078263132",
+  appId: "1:651078263132:web:e52380415a19413e812199"
+};
 
-(function(){ emailjs.init("TU_PUBLIC_KEY"); })();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-function siguiente(){
-    paso1.classList.add("hidden");
-    paso2.classList.remove("hidden");
-}
-
-function toggleMenores(e){
-    menoresBox.classList.toggle("hidden", e.value !== "Sí");
-}
-
-function toggleEspera(e){
-    esperaHoras.classList.toggle("hidden", e.value !== "Sí");
-}
-
-function toggleInternos(e){
-    detalleInternos.classList.toggle("hidden", e.value !== "Sí");
-}
+/* FUNCIONES */
+function siguiente(){ paso1.classList.add("hidden"); paso2.classList.remove("hidden"); }
+function toggleMenores(e){ menoresBox.classList.toggle("hidden", e.value !== "Sí"); }
+function toggleEspera(e){ esperaHoras.classList.toggle("hidden", e.value !== "Sí"); }
+function toggleInternos(e){ detalleInternos.classList.toggle("hidden", e.value !== "Sí"); }
 
 function manejarPais(){
-    let pais = document.getElementById("pais").value;
-
     argentinaBox.classList.add("hidden");
     exteriorBox.classList.add("hidden");
 
-    if(pais === "Argentina"){
+    if(pais.value === "Argentina"){
         argentinaBox.classList.remove("hidden");
         cargarProvincias();
     } else {
@@ -258,8 +254,7 @@ async function cargarProvincias(){
 }
 
 async function cargarCiudades(){
-    let prov = provincia.value;
-    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${prov}&max=1000`);
+    let res = await fetch(`https://apis.datos.gob.ar/georef/api/localidades?provincia=${provincia.value}&max=1000`);
     let data = await res.json();
 
     ciudad.innerHTML = "";
@@ -270,28 +265,42 @@ async function cargarCiudades(){
     });
 }
 
+/* GUARDAR EN FIREBASE */
 form.addEventListener("submit", function(e){
     e.preventDefault();
 
-    let pais = document.getElementById("pais").value;
+    let paisVal = pais.value;
 
-    if(pais !== "Argentina"){
+    if(paisVal !== "Argentina"){
         if(!provExt.value || !ciudadExt.value){
-            alert("Debés completar provincia y ciudad de destino");
+            alert("Completá provincia y ciudad");
             return;
         }
     }
 
     if(internos.value === "Sí" && !textoInternos.value){
-        alert("Debés especificar los traslados internos");
+        alert("Completá traslados internos");
         return;
     }
 
-    emailjs.send("TU_SERVICE_ID","TU_TEMPLATE_ID",{})
-    .then(()=> alert("Consulta enviada correctamente"))
-    .catch(()=> alert("Error al enviar. Configurá EmailJS"));
-});
+    let data = {
+        nombre: nombre.value,
+        telefono: telefono.value,
+        adultos: adultos.value,
+        menores: cantMenores.value || 0,
+        origen: origen.value,
+        pais: paisVal,
+        provincia: paisVal === "Argentina" ? provincia.value : provExt.value,
+        ciudad: paisVal === "Argentina" ? ciudad.value : ciudadExt.value,
+        fecha: ida.value,
+        estado: "pendiente",
+        fecha_creacion: new Date()
+    };
 
+    db.collection("consultas").add(data)
+    .then(()=> alert("Consulta enviada correctamente"))
+    .catch(()=> alert("Error al guardar"));
+});
 </script>
 
 </body>
