@@ -196,6 +196,12 @@ button:active {
 <label>Hora salida</label>
 <input type="time" id="salida" required>
 
+<label>Fecha de regreso</label>
+<input type="date" id="vuelta" required>
+
+<label>Hora de regreso</label>
+<input type="time" id="salida" required>
+
 <label>¿Incluye traslados internos?</label>
 <p style="font-size:13px;color:#555;">
 Ej: movimientos dentro del destino como hotel → excursiones → restaurantes → eventos.
@@ -343,12 +349,12 @@ form.addEventListener("submit", function(e){
     e.preventDefault();
 
     if(internos.value === "Sí" && !textoInternos.value){
-        mostrarAlerta("Completá los traslados internos");
+        mostrarAlerta("Completá los traslados internos indicando recorridos y horarios");
         return;
     }
 
     if(esperas.value === "Sí" && !horasEspera.value){
-        mostrarAlerta("Indicá horas de espera");
+        mostrarAlerta("Indicá cuántas son las horas de espera");
         return;
     }
 
@@ -362,6 +368,7 @@ form.addEventListener("submit", function(e){
         provincia: provincia.value || provExt.value,
         ciudad: ciudad.value || ciudadExt.value,
         fecha: ida.value,
+        fecha: vuelta.value,
         traslados_internos: internos.value === "Sí" ? textoInternos.value : "No incluye",
         esperas: esperas.value === "Sí" ? horasEspera.value + " horas" : "No incluye",
         estado: "pendiente",
