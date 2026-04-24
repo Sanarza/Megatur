@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin MEGATUR</title>
+
+<style>
+body {
+    font-family: Arial;
+    background:#f4f4f4;
+    padding:20px;
+}
+
+h1 {
+    color:#0a4fa3;
+}
+
+.card {
+    background:white;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+
+<body>
+
+<h1>Panel Admin - MEGATUR</h1>
+
+<div id="lista"></div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
+  authDomain: "megatur-633bf.firebaseapp.com",
+  projectId: "megatur-633bf",
+  storageBucket: "megatur-633bf.firebasestorage.app",
+  messagingSenderId: "651078263132",
+  appId: "1:651078263132:web:e52380415a19413e812199"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* CARGAR CONSULTAS */
+db.collection("consultas").orderBy("fecha_creacion","desc")
+.onSnapshot(snapshot => {
+
+    let html = "";
+
+    snapshot.forEach(doc => {
+        let d = doc.data();
+
+        html += `
+        <div class="card">
+            <b>${d.nombre}</b><br>
+            📞 ${d.telefono}<br>
+            🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
+            📅 ${d.fecha}<br>
+            👥 Adultos: ${d.adultos} | Menores: ${d.menores}<br>
+            🚐 Origen: ${d.origen}<br>
+            📌 Estado: ${d.estado}
+        </div>
+        `;
+    });
+
+    document.getElementById("lista").innerHTML = html;
+
+});
+</script>
+
+</body>
+</html>
