@@ -1,1 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin MEGATUR</title>
 
+<style>
+body {
+    font-family: Arial;
+    background:#f4f4f4;
+    padding:20px;
+}
+
+h1 {
+    color:#0a4fa3;
+}
+
+.card {
+    background:white;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pagado {
+    background:#d4edda;
+}
+
+button {
+    background:#0a4fa3;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+button:hover {
+    background:#083a78;
+}
+
+input {
+    margin-top:5px;
+    padding:8px;
+    width:100%;
+}
+
+/* CALENDARIO */
+#calendario {
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-bottom:20px;
+}
+
+.dia {
+    width:50px;
+    height:50px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    border-radius:6px;
+    font-size:12px;
+    background:#eee;
+}
+
+.ocupado1 {
+    background:#ffc107;
+    color:black;
+}
+
+.ocupado2 {
+    background:red;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Panel Admin - MEGATUR</h1>
+
+<h3>Calendario (fechas ocupadas)</h3>
+<div id="calendario"></div>
+
+<div id="lista"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBMlVhTdlsJ6Idf2dmdYWi7aojkpEuGPxg",
+  authDomain: "megatur-633bf.firebaseapp.com",
+  projectId: "megatur-633bf"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* TELEFONO */
+function limpiarTelefono(tel){
+    tel = tel.replace(/\D/g,'');
+    if(!tel.startsWith("549")){
+        tel = "549" + tel;
+    }
+    return tel;
+}
+
+/* ENVIAR PRESUPUESTO */
+function enviarPresupuesto(id,tel,nombre,fecha,ciudad,adultos,menores,internos,esperas){
+
+    let precio = document.getElementById("precio_" + id).value;
+    let link = document.getElementById("link_" + id).value;
+
+    if(!precio){
+        alert("Ingresá el precio");
+        return;
+    }
+
+    let telefono = limpiarTelefono(tel);
+
+    let mensaje = `Hola ${nombre}, Recibimos tu consulta para el viaje del ${fecha} a ${ciudad} para ${adultos} adultos y ${menores} menores.
+
+${internos && internos !== "No incluye" ? "Incluye traslados internos: " + internos + "." : ""}
+${esperas && esperas !== "No incluye" ? " Incluye esperas: " + esperas + "." : ""}
+
+El precio final es de $${precio}.
+
+${link ? "Reservá por 20 dias, con el 60% acá: " + link : ""}
+
+Recordá que los valores pueden variar por inflación.`;
+
+    let url = "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje);
+
+    window.open(url, "_blank");
+}
+
+/* MARCAR COMO PAGADO */
+function marcarPagado(id,fecha,hora,ciudad,adultos,menores){
+
+    db.collection("consultas").doc(id).update({
+        estado: "pagado"
+    });
+
+    db.collection("fechas_ocupadas").add({
+        fecha: fecha,
+        hora: hora || "00:00",
+        ciudad: ciudad,
+        personas: Number(adultos) + Number(menores),
+        fecha_registro: new Date()
+    });
+}
+
+/* CALENDARIO MEJORADO */
+function cargarCalendario(){
+
+    db.collection("fechas_ocupadas").get().then(snapshot=>{
+
+        let contador = {};
+
+        snapshot.forEach(doc=>{
+            let f = doc.data().fecha;
+            contador[f] = (contador[f] || 0) + 1;
+        });
+
+        let html = "";
+
+        Object.keys(contador).forEach(fecha=>{
+
+            let dia = fecha.split("-")[2];
+            let cantidad = contador[fecha];
+
+            let clase = cantidad >= 2 ? "ocupado2" : "ocupado1";
+
+            html += `
+            <div class="dia ${clase}">
+                ${dia}
+                <small>${cantidad}</small>
+            </div>`;
+        });
+
+        document.getElementById("calendario").innerHTML = html;
+    });
+}
+
+/* CONSULTAS */
+db.collection("consultas").orderBy("fecha_creacion","desc")
+.onSnapshot(snapshot => {
+
+    let html = "";
+
+    snapshot.forEach(doc => {
+        let d = doc.data();
+
+        html += `
+        <div class="card ${d.estado === "pagado" ? "pagado" : ""}">
+            <b>${d.nombre}</b><br>
+            📞 ${d.telefono}<br>
+            🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
+            📅 ${d.fecha}<br>
+            ⏰ ${d.hora_salida || "Sin hora"}<br>
+            👥 ${d.adultos} adultos / ${d.menores} menores<br>
+
+            🔁 ${d.traslados_internos || "No incluye"}<br>
+            ⏳ ${d.esperas || "No incluye"}<br>
+
+            📌 Estado: ${d.estado}<br><br>
+
+            <input type="number" id="precio_${doc.id}" placeholder="Precio $">
+            <input type="text" id="link_${doc.id}" placeholder="Link de pago">
+
+            <button onclick="enviarPresupuesto('${doc.id}','${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}')">
+                ENVIAR PRESUPUESTO
+            </button>
+
+            <button onclick="marcarPagado('${doc.id}','${d.fecha}','${d.hora_salida}','${d.ciudad}','${d.adultos}','${d.menores}')">
+                MARCAR COMO PAGADO
+            </button>
+        </div>
+        `;
+    });
+
+    document.getElementById("lista").innerHTML = html;
+
+    cargarCalendario();
+});
+</script>
+
+</body>
+</html>
