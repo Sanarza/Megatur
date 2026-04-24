@@ -18,6 +18,7 @@ h1 { color:#0a4fa3; }
     padding:15px;
     margin:10px 0;
     border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
 .pagado { background:#d4edda; }
@@ -25,16 +26,17 @@ h1 { color:#0a4fa3; }
 button {
     background:#0a4fa3;
     color:white;
-    padding:10px;
     border:none;
+    padding:10px;
     border-radius:6px;
+    cursor:pointer;
     margin-top:10px;
 }
 
 input {
-    width:100%;
-    padding:8px;
     margin-top:5px;
+    padding:8px;
+    width:100%;
 }
 
 /* LOGIN */
@@ -66,7 +68,9 @@ input {
 <h1>Panel Admin - MEGATUR</h1>
 <button onclick="logout()">Cerrar sesión</button>
 
+<h3>Calendario (fechas ocupadas)</h3>
 <div id="calendario"></div>
+
 <div id="lista"></div>
 
 </div>
@@ -113,51 +117,76 @@ function limpiarTelefono(tel){
     return tel;
 }
 
-/* ENVIAR */
+/* ENVIAR PRESUPUESTO */
 function enviarPresupuesto(id,tel,nombre,fecha,ciudad,adultos,menores,internos,esperas,usuario){
 
-    let precio = document.getElementById("precio_"+id).value;
-    let link = document.getElementById("link_"+id).value;
+    let precio = document.getElementById("precio_" + id).value;
+    let link = document.getElementById("link_" + id).value;
 
-    if(!precio){ alert("Ingresá el precio"); return; }
+    if(!precio){
+        alert("Ingresá el precio");
+        return;
+    }
 
     let telefono = limpiarTelefono(tel);
 
-    let mensaje = `Hola ${nombre}, tu viaje del ${fecha} a ${ciudad} tiene un valor de $${precio}.
+    let mensaje = `Hola ${nombre}, Recibimos tu consulta para el viaje del ${fecha} a ${ciudad}.
 
-${link ? "Reservá acá: "+link : ""}
+El precio final es de $${precio}.
+
+${link ? "Reservá acá: " + link : ""}
 
 Atendido por: ${usuario}`;
 
-    window.open("https://wa.me/"+telefono+"?text="+encodeURIComponent(mensaje));
+    window.open("https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje));
 
-    /* GUARDAR QUIEN RESPONDIO */
+    /* GUARDAR QUIEN RESPONDE */
     db.collection("consultas").doc(id).update({
         respondido_por: usuario,
         fecha_respuesta: new Date()
     });
 }
 
-/* PAGADO */
+/* MARCAR COMO PAGADO */
 function marcarPagado(id,fecha,hora,ciudad,adultos,menores){
 
-    db.collection("consultas").doc(id).update({ estado:"pagado" });
+    db.collection("consultas").doc(id).update({
+        estado: "pagado"
+    });
 
     db.collection("fechas_ocupadas").add({
-        fecha, hora, ciudad,
-        personas:Number(adultos)+Number(menores)
+        fecha: fecha,
+        hora: hora || "00:00",
+        ciudad: ciudad,
+        personas: Number(adultos) + Number(menores),
+        fecha_registro: new Date()
     });
 }
 
 /* CALENDARIO */
 function cargarCalendario(){
-    db.collection("fechas_ocupadas").get().then(s=>{
-        let html="";
-        s.forEach(doc=>{
-            let f=doc.data().fecha;
-            html+=`<div>${f}</div>`;
+
+    db.collection("fechas_ocupadas").get().then(snapshot=>{
+
+        let contador = {};
+
+        snapshot.forEach(doc=>{
+            let f = doc.data().fecha;
+            contador[f] = (contador[f] || 0) + 1;
         });
-        calendario.innerHTML=html;
+
+        let html = "";
+
+        Object.keys(contador).forEach(fecha=>{
+
+            let dia = fecha.split("-")[2];
+            let cantidad = contador[fecha];
+            let color = cantidad >= 2 ? "red" : "#ffc107";
+
+            html += `<div style="background:${color};padding:10px;margin:5px;border-radius:5px;">${dia} (${cantidad})</div>`;
+        });
+
+        calendario.innerHTML = html;
     });
 }
 
@@ -165,34 +194,43 @@ function cargarCalendario(){
 function cargarTodo(usuario){
 
 db.collection("consultas").orderBy("fecha_creacion","desc")
-.onSnapshot(snapshot=>{
+.onSnapshot(snapshot => {
 
-    let html="";
+    let html = "";
 
-    snapshot.forEach(doc=>{
-        let d=doc.data();
+    snapshot.forEach(doc => {
+        let d = doc.data();
 
-        html+=`
-        <div class="card ${d.estado==="pagado"?"pagado":""}">
-        <b>${d.nombre}</b><br>
-        ${d.fecha}<br>
-        Estado: ${d.estado || "pendiente"}<br>
-        Respondido por: ${d.respondido_por || "-"}
+        html += `
+        <div class="card ${d.estado === "pagado" ? "pagado" : ""}">
+            <b>${d.nombre}</b><br>
+            📞 ${d.telefono}<br>
+            🌍 ${d.pais} - ${d.provincia} - ${d.ciudad}<br>
+            📅 ${d.fecha}<br>
+            ⏰ ${d.hora_salida || "Sin hora"}<br>
+            👥 ${d.adultos} adultos / ${d.menores} menores<br>
 
-        <input id="precio_${doc.id}" placeholder="Precio">
-        <input id="link_${doc.id}" placeholder="Link">
+            🔁 ${d.traslados_internos || "No incluye"}<br>
+            ⏳ ${d.esperas || "No incluye"}<br>
 
-        <button onclick="enviarPresupuesto('${doc.id}','${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}','${usuario}')">
-        ENVIAR
-        </button>
+            📌 Estado: ${d.estado}<br>
+            👤 Respondido por: ${d.respondido_por || "Sin responder"}<br><br>
 
-        <button onclick="marcarPagado('${doc.id}','${d.fecha}','${d.hora_salida}','${d.ciudad}','${d.adultos}','${d.menores}')">
-        PAGADO
-        </button>
-        </div>`;
+            <input type="number" id="precio_${doc.id}" placeholder="Precio $">
+            <input type="text" id="link_${doc.id}" placeholder="Link de pago">
+
+            <button onclick="enviarPresupuesto('${doc.id}','${d.telefono}','${d.nombre}','${d.fecha}','${d.ciudad}','${d.adultos}','${d.menores}','${d.traslados_internos}','${d.esperas}','${usuario}')">
+                ENVIAR PRESUPUESTO
+            </button>
+
+            <button onclick="marcarPagado('${doc.id}','${d.fecha}','${d.hora_salida}','${d.ciudad}','${d.adultos}','${d.menores}')">
+                MARCAR COMO PAGADO
+            </button>
+        </div>
+        `;
     });
 
-    lista.innerHTML=html;
+    lista.innerHTML = html;
     cargarCalendario();
 });
 }
