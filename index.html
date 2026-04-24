@@ -76,6 +76,21 @@ button:active {
 .hidden {
     display: none;
 }
+
+/* MENSAJE FINAL */
+#mensajeFinal {
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+}
+
+#mensajeFinal button {
+    background: white;
+    color: #0a4fa3;
+    border: 2px solid #0a4fa3;
+    box-shadow: none;
+    cursor: default;
+}
 </style>
 </head>
 
@@ -169,24 +184,24 @@ button:active {
 <label>Hora llegada</label>
 <input type="time">
 
-<label>¿Incluye traslados internos?</label>
+<label>¿Incluye traslados internos? (Ej: traslado desde alojamiento a excursiones, restaurantes o distintos puntos del destino)</label>
 <select id="internos" onchange="toggleInternos(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
 <div id="detalleInternos" class="hidden">
-<textarea id="textoInternos"></textarea>
+<textarea id="textoInternos" placeholder="Ej: 2 traslados diarios desde hotel a playa y regreso. Indicar cantidad, desde dónde hacia dónde y horarios"></textarea>
 </div>
 
-<label>¿Incluye esperas?</label>
+<label>¿Incluye esperas? (Ej: el vehículo permanece disponible durante varias horas o todo el día en el destino)</label>
 <select id="esperas" onchange="toggleEspera(this)">
 <option>No</option>
 <option>Sí</option>
 </select>
 
 <div id="esperaHoras" class="hidden">
-<input type="number" id="horasEspera">
+<input type="number" id="horasEspera" placeholder="Cantidad de horas de espera">
 </div>
 
 <label>
@@ -199,6 +214,12 @@ Los menores ocupan y abonan su lugar
 </div>
 
 </form>
+
+<div id="mensajeFinal">
+<button>
+GRACIAS POR TU CONSULTA. En menos de 24hs. nos comunicaremos al whatsapp que proporcionaste, para enviarte el presupuesto de viaje.
+</button>
+</div>
 
 </div>
 </div>
@@ -265,7 +286,7 @@ async function cargarCiudades(){
     });
 }
 
-/* GUARDAR EN FIREBASE */
+/* ENVIO */
 form.addEventListener("submit", function(e){
     e.preventDefault();
 
@@ -298,7 +319,10 @@ form.addEventListener("submit", function(e){
     };
 
     db.collection("consultas").add(data)
-    .then(()=> alert("Consulta enviada correctamente"))
+    .then(()=>{
+        form.style.display = "none";
+        mensajeFinal.style.display = "block";
+    })
     .catch(()=> alert("Error al guardar"));
 });
 </script>
